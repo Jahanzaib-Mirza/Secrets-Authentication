@@ -1,11 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
-const md5 = require("md5")
-const bodyParser = require("body-parser");
+const bcrypt = require('bcrypt');
 const ejs = require("ejs");
+const bodyParser = require("body-parser");
 
 
+const saltRounds = 10;
 const port = 9000;
 const app = express();
 mongoose.connect("mongodb://127.0.0.1:27017/SecretsDB")
@@ -37,22 +38,24 @@ app.get("/register",(req,res)=>{
 })
 
 app.post("/register",(req,res)=>{
-   
-    const user = new User({email : req.body.username,
-        password : md5(req.body.password)
-    })
-    user.save().then((val)=>{
-        console.log(val);
-        res.render("secrets")
-    })
+    bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
+        // Store hash in your password DB.
+        const user = new User({email : req.body.username,
+            password : hash
+        })
+        user.save().then((val)=>{
+            console.log(val);
+            res.render("secrets")
+        })
+    });
 })
 app.post("/login",(req,res)=>{
     const email = req.body.username;
     const password = req.body.password;
     User.findOne({email}).then((val)=>{
-        if(val.password === md5(password)){
+        bcrypt.compare(password, val.password, function(err, result) {
             res.render("secrets")
-        }
+        });
     })
 })
 
