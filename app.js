@@ -71,13 +71,23 @@ passport.use(new FacebookStrategy({
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.set("view engine", "ejs");
-
+const secretSchema = new mongoose.Schema({
+    secret: {
+        type : String,
+        required : true
+    },
+    userId : String
+})
+const Secret = mongoose.model("Secret",secretSchema);
 
 app.get("/", (req, res) => {
     res.render("home");
 });
 app.get("/login", (req, res) => {
     res.render("login");
+});
+app.get("/submit", (req, res) => {
+    res.render("submit");
 });
 app.get("/register", (req, res) => {
     res.render("register");
@@ -90,8 +100,12 @@ app.get("/logout", (req, res) => {
 app.get("/secrets", (req, res) => {
 
     console.log(req.isAuthenticated());
-    if (req.isAuthenticated())
-        res.render("secrets");
+    if (req.isAuthenticated()){
+        Secret.find().then(secrets =>{
+            res.render("secrets",{secrets});
+        })
+
+    }
     else res.redirect("/login")
 });
 //
@@ -134,12 +148,18 @@ app.post("/login", (req, res) => {
         if (err) console.log(err);
         else {
             passport.authenticate("local")(req, res, () => {
-                res.statusCode(200).redirect("/secrets")
+                res.redirect("/secrets")
             })
         }
 
     })
 })
+app.post("/submit", (req, res) => {
+    const secret = new Secret({secret : req.body.secret,userId : req.user._id});
+    secret.save().then(val =>{
+        res.redirect("/secrets")
+    })
+});
 
 
 
